@@ -73,7 +73,13 @@ int SetFormat(int *DeviceID,int Width,int Height){
 	}
 	return 0;
 }
-int SaveFrame(int *DeviceID,int FrameNumber){
+void CreateFileName(char *resName,const char *oriName,const int idx,const int pos){
+	int i = 0;
+	while((*resName++=*oriName++)!='\0'){ i++; }
+	while(i-->-1){ *resName--; }
+	*(resName+pos) = 48 + idx + 1;
+}
+int SaveFrame(int *DeviceID,int FrameNumber,char *filename){
 	//向驱动申请帧缓存
 	int CAP_BUF_NUM = FrameNumber;
 	struct v4l2_requestbuffers req;
@@ -171,16 +177,18 @@ int SaveFrame(int *DeviceID,int FrameNumber){
 		}
 		else
 		{
-			char fname[18] = "0.jpeg";
-			fname[0] = 48 + franeCount;
-			printf("----------*****debug*****----------\n");
+			char fname[64];
+			// strcpy(fname,filename);
+			// fname[0] = 48 + franeCount + 1;
+			CreateFileName(fname,filename,franeCount,0);
 			{
 				FILE* f = fopen(fname, "ab");
 				int wt = fwrite(buffers[capture_buf.index].start, 1, buffers[capture_buf.index].length, f);
 				printf("数据流Size=%d\n", wt);
 				fclose(f);
 			}
-			printf("获取缓冲帧%d成功\n", franeCount);
+			printf("保存缓冲帧%d成功,文件名:%s\n", franeCount+1,fname);
+			printf("----------*****-----*****----------\n");
 			//把用完的帧重新插回队列
 			if (ioctl(*DeviceID, VIDIOC_QBUF, &capture_buf) == -1) {
 				printf("✖错误:缓冲帧%d插回队列失败\n", franeCount);
